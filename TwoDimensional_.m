@@ -1,0 +1,205 @@
+clear
+
+[p,e,x,y,u,k,et]=Solve(64,1e-6);
+surf(x,y,u);
+n=4;
+i=1;
+while n<=256
+    [p,e,x,y,u,k(i),et]=Solve(n,1e-6);
+    E(i)=mynorm(e,0,1/n);
+    n=n*2;
+    i=i+1;
+end
+i=2;
+while i<=7
+    mye(i-1)=log(E(i-1)/E(i))/log(2);
+    i=i+1;
+end
+
+function [p,e,x,y,u,i,et]=Solve(n,ep)
+h=1/n;
+t=1/n;
+x=0:h:1;
+y=0:h:1;
+a=zeros(n+1,n+1);
+b=zeros(n+1,n+1);
+f=zeros(n+1,n+1);
+u0=zeros(n+1,n+1);
+u_=zeros(n+1,n+1);
+e=1;
+for i=1:n+1
+    for j=1:n+1
+        a(i,j)=aexact(x(i),y(j));
+        b(i,j)=bexact(x(i),y(j));
+        f(i,j)=fexact(x(i),y(j));
+        %u0(i,j)=uexact(x(i),y(j));
+        p(i,j)=uexact(x(i),y(j));
+    end
+end
+A1=zeros(1,n-1);
+A2=zeros(1,n-1);
+A3=zeros(1,n-1);
+Y=zeros(1,n-1);
+u=zeros(n+1,n+1);
+for i=1:n
+    for k=2:n
+        for j=2:n
+            aix=a(j,k);
+            rix=h*aix/e;
+            Yx=Y0_1(rix,aix,e);
+            A1x=A1_1(rix,aix,e)/Yx;
+            A2x=A2_1(rix,aix,e)/Yx;
+            A3x=A3_1(rix,aix,e)/Yx;
+            
+            aiy=b(j,k);
+            riy=h*aiy/e;
+            Yy=Y0_1(riy,aiy,e);
+            A1y=A1_1(riy,aiy,e)/Yy;
+            A2y=A2_1(riy,aiy,e)/Yy;
+            A3y=A3_1(riy,aiy,e)/Yy;
+            
+            fi=f(j,k);
+            
+%             A1x*u0(j-1,k)+A2x*u0(j,k)+A3x*u0(j+1,k)+A1y*u0(j,k-1)+A2y*u0(j,k)+A3y*u0(j,k+1)
+%             fi
+            A1(j-1)=t*A1x;
+            A2(j-1)=1+t*A2x;
+            A3(j-1)=t*A3x;
+            Y(j-1)=u0(j,k)-t*(A1y*u0(j,k-1)+A2y*u0(j,k)+A3y*u0(j,k+1))+t*fi;
+        end
+        
+        u(2:n,k)=zhuiganfa(A1(2:n-1),A2,A3(1:n-2),Y);
+    end
+    for j=2:n
+        for k=2:n
+            aix=a(j,k);
+            rix=h*aix/e;
+            Yx=Y0_1(rix,aix,e);
+            A1x=A1_1(rix,aix,e)/Yx;
+            A2x=A2_1(rix,aix,e)/Yx;
+            A3x=A3_1(rix,aix,e)/Yx;
+            
+            aiy=b(j,k);
+            riy=h*aiy/e;
+            Yy=Y0_1(riy,aiy,e);
+            A1y=A1_1(riy,aiy,e)/Yy;
+            A2y=A2_1(riy,aiy,e)/Yy;
+            A3y=A3_1(riy,aiy,e)/Yy;
+            
+            fi=f(j,k);
+            
+            A1(k-1)=t*A1y;
+            A2(k-1)=1+t*A2y;
+            A3(k-1)=t*A3y;
+            Y(k-1)=u(j,k)-t*(A1x*u(j-1,k)+A2x*u(j,k)+A3x*u(j+1,k))+t*fi;
+        end
+        u0(j,2:n)=zhuiganfa(A1(2:n-1),A2,A3(1:n-2),Y);
+    end
+    et(i)=mynorm(u0,u_,h);
+    if(et(i)<ep)
+        break;
+    end
+    u_=u0;
+end
+u=u0;
+e=abs(u-p);
+end
+
+function [r]=aexact(x,y)
+r=x+y+1;
+%r=x+1;
+end
+
+function [r]=bexact(x,y)
+%r=x+y+1;
+r=x+y+1;
+end
+
+function [r]=fexact(x,y)
+r=2*x^3*y - x^3 + 4*x^2*y^2 - 3*x^2*y - 2*x^2 + 2*x*y^3 - 3*x*y^2 - 2*x*y + 3*x - y^3 - 2*y^2 + 3*y;
+%r=2*sin(pi*y) - (x*sin(pi*y) + sin(pi*y)*(x - 1))*(x + 1) - x*pi^2*sin(pi*y)*(x - 1) - x*pi*cos(pi*y)*(x - 1)*(x + y + 1);
+%r=(x + 1)*(pi*exp(pi*(x + y))*cos(pi*x)*sin(pi*y) + pi*exp(pi*(x + y))*sin(pi*x)*sin(pi*y)) + (pi*exp(pi*(x + y))*cos(pi*y)*sin(pi*x) + pi*exp(pi*(x + y))*sin(pi*x)*sin(pi*y))*(x + y + 1) - 2*pi^2*exp(pi*(x + y))*cos(pi*x)*sin(pi*y) - 2*pi^2*exp(pi*(x + y))*cos(pi*y)*sin(pi*x);
+end
+
+function [r]=uexact(x,y)
+r=x*(1-x)*y*(1-y);
+%r=-x*sin(pi*y)*(x - 1);
+%r=exp(pi*(x+y))*sin(x*pi)*sin(y*pi);
+end
+
+function u=Solve1_(e,a,f,n)
+h=1/n;
+for i=1:n-1
+    ai=a(i);
+    ri=h*ai/e;
+    fi=f(i);
+    A1(i)=A1_1(ri,ai,e);
+    A2(i)=A2_1(ri,ai,e);
+    A3(i)=A3_1(ri,ai,e);
+    Y(i)=Y0_1(ri,ai,e)*fi;
+end
+A1(1)=[];
+A3(n-1)=[];
+u=[0,zhuiganfa(A1,A2,A3,Y),0];
+end
+
+function res=P_h_1_i(ri,ai,e)
+res=e/ai*(1-exp(-ri));
+end
+
+function res=P_p_1_i(ri,ai,e)
+res=e/ai*(exp(-2*ri)-exp(-ri));
+end
+
+function res=Q_h_1_0i(ri,ai,e)
+res=-e/ai^2*(1-exp(-ri)-ri*exp(-ri));
+end
+
+function res=Q_p_1_0i(ri,ai,e)
+res=-e/ai^2*(exp(-2*ri)-exp(-ri)+ri*exp(-ri));
+end
+
+function res=A1_1(ri,ai,e)
+res=-exp(-ri)*(P_h_1_i(ri,ai,e));
+end
+
+function res=A2_1(ri,ai,e)
+res=exp(-ri)*(P_h_1_i(ri,ai,e)-P_p_1_i(ri,ai,e));
+end
+
+function res=A3_1(ri,ai,e)
+res=exp(-ri)*(P_p_1_i(ri,ai,e));
+end
+
+function res=Y0_1(ri,ai,e)
+res=P_p_1_i(ri,ai,e)*Q_h_1_0i(ri,ai,e)-P_h_1_i(ri,ai,e)*Q_p_1_0i(ri,ai,e);
+end
+
+function [x]=zhuiganfa(a,b,c,d)
+r=size(a);
+m=r(2);
+r=size(b);
+n=r(2);
+if size(a)~=size(c)|m~=n-1|size(b)~=size(d)
+    error('');
+end
+u(1)=b(1);
+for i=2:n
+    l(i-1)=a(i-1)/u(i-1);
+    u(i)=b(i)-l(i-1)*c(i-1);
+end
+y(1)=d(1);
+for i=2:n
+    y(i)=d(i)-l(i-1)*y(i-1);
+end
+x(n)=y(n)/u(n);
+for i=n-1:-1:1
+    x(i)=y(i)/u(i);
+    x(i)=(y(i)-c(i)*x(i+1))/u(i);
+end
+end
+
+function [res]=mynorm(A,B,h)
+T=(A-B).*(A-B);
+res=sqrt(sum(sum(T)))*h;
+end
